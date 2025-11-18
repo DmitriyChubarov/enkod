@@ -1,6 +1,7 @@
 package repositorypostgres
 
 import (
+	"context"
 	"errors"
 
 	log "github.com/sirupsen/logrus"
@@ -9,11 +10,11 @@ import (
 )
 
 type PersonRepository interface {
-	Create(p *app.Person) error
-	GetByID(id int64) (*app.Person, error)
-	Update(id int64, p *app.Person) error
-	Delete(id int64) error
-	List(limit, offset int, search string) ([]*app.Person, error)
+	Create(ctx context.Context,p *app.Person) error
+	GetByID(ctx context.Context, id int64) (*app.Person, error)
+	Update(ctx context.Context, id int64, p *app.Person) error
+	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, limit, offset int, search string) ([]*app.Person, error)
 }
 
 type personRepository struct {
@@ -24,7 +25,7 @@ func NewPersonRepository(session *dbr.Session) PersonRepository {
 	return &personRepository{session: session}
 }
 
-func (r *personRepository) Create(p *app.Person) error {
+func (r *personRepository) Create(ctx context.Context, p *app.Person) error {
 	log.WithFields(log.Fields{
 		"email":     p.Email,
 		"firstName": p.FirstName,
@@ -34,7 +35,7 @@ func (r *personRepository) Create(p *app.Person) error {
 	_, err := r.session.InsertInto("person").
 		Columns("email", "phone", "first_name", "last_name").
 		Record(p).
-		Exec()
+		ExecContext(ctx)
 	
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -48,11 +49,11 @@ func (r *personRepository) Create(p *app.Person) error {
 	return err
 }
 
-func (r *personRepository) GetByID(id int64) (*app.Person, error) {
+func (r *personRepository) GetByID(ctx context.Context, id int64) (*app.Person, error) {
 	log.WithField("id", id).Debug("Выполнение SQL: SELECT FROM person WHERE id = ?")
 	
 	var p app.Person
-	err := r.session.Select("*").From("person").Where("id = ?", id).LoadOne(&p)
+	err := r.session.Select("*").From("person").Where("id = ?", id).LoadOneContext(ctx, &p)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    id,
@@ -68,7 +69,7 @@ func (r *personRepository) GetByID(id int64) (*app.Person, error) {
 	return &p, nil
 }
 
-func (r *personRepository) Update(id int64, p *app.Person) error {
+func (r *personRepository) Update(ctx context.Context, id int64, p *app.Person) error {
 	log.WithFields(log.Fields{
 		"id":        id,
 		"email":     p.Email,
@@ -84,7 +85,7 @@ func (r *personRepository) Update(id int64, p *app.Person) error {
 			"last_name":  p.LastName,
 		}).
 		Where("id = ?", id).
-		Exec()
+		ExecContext(ctx)
 	
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -98,10 +99,10 @@ func (r *personRepository) Update(id int64, p *app.Person) error {
 	return err
 }
 
-func (r *personRepository) Delete(id int64) error {
+func (r *personRepository) Delete(ctx context.Context, id int64) error {
 	log.WithField("id", id).Debug("Выполнение SQL: DELETE FROM person WHERE id = ?")
 	
-	_, err := r.session.DeleteFrom("person").Where("id = ?", id).Exec()
+	_, err := r.session.DeleteFrom("person").Where("id = ?", id).ExecContext(ctx)
 	
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -115,7 +116,7 @@ func (r *personRepository) Delete(id int64) error {
 	return err
 }
 
-func (r *personRepository) List(limit, offset int, search string) ([]*app.Person, error) {
+func (r *personRepository) List(ctx context.Context, limit, offset int, search string) ([]*app.Person, error) {
 	log.WithFields(log.Fields{
 		"limit":  limit,
 		"offset": offset,
@@ -127,7 +128,7 @@ func (r *personRepository) List(limit, offset int, search string) ([]*app.Person
 	if search != "" {
 		q = q.Where("email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
-	_, err := q.Load(&people)
+	_, err := q.LoadContext(ctx, &people)
 	
 	if err != nil {
 		log.WithFields(log.Fields{

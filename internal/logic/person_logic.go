@@ -29,7 +29,7 @@ func (s *PersonService) CreatePerson(ctx context.Context, p *app.Person) (*app.P
 		log.WithField("email", p.Email).Error("Email введен некорректно")
 		return nil, errors.New("invalid email format")
 	}
-	if err := s.repo.Create(p); err != nil {
+	if err := s.repo.Create(ctx, p); err != nil {
 		log.WithFields(log.Fields{
 			"email": p.Email,
 			"error": err.Error(),
@@ -46,7 +46,7 @@ func (s *PersonService) CreatePerson(ctx context.Context, p *app.Person) (*app.P
 }
 
 func (s *PersonService) GetPerson(ctx context.Context, id int64) (*app.Person, error) {
-	person, err := s.repo.GetByID(id)
+	person, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    id,
@@ -62,7 +62,7 @@ func (s *PersonService) GetPerson(ctx context.Context, id int64) (*app.Person, e
 }
 
 func (s *PersonService) UpdatePerson(ctx context.Context, id int64, p *app.Person) (*app.Person, error) {
-	if err := s.repo.Update(id, p); err != nil {
+	if err := s.repo.Update(ctx, id, p); err != nil {
 		log.WithFields(log.Fields{
 			"id":    id,
 			"error": err.Error(),
@@ -70,11 +70,11 @@ func (s *PersonService) UpdatePerson(ctx context.Context, id int64, p *app.Perso
 		return nil, err
 	}
 	log.WithField("id", id).Info("Пользователь успешно обновлен")
-	return s.repo.GetByID(id)
+	return s.repo.GetByID(ctx, id)
 }
 
 func (s *PersonService) DeletePerson(ctx context.Context, id int64) error {
-	if err := s.repo.Delete(id); err != nil {
+	if err := s.repo.Delete(ctx, id); err != nil {
 		log.WithFields(log.Fields{
 			"id":    id,
 			"error": err.Error(),
@@ -86,7 +86,7 @@ func (s *PersonService) DeletePerson(ctx context.Context, id int64) error {
 }
 
 func (s *PersonService) ListPersons(ctx context.Context, limit, offset int, search string) ([]*app.Person, error) {
-	people, err := s.repo.List(limit, offset, search)
+	people, err := s.repo.List(ctx, limit, offset, search)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"limit":  limit,

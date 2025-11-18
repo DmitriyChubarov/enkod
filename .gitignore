@@ -3,7 +3,6 @@
 *.dll
 *.so
 *.dylib
-person-service
 
 *.test
 
